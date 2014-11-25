@@ -24,11 +24,12 @@ public class BasicMethodComparator extends MethodComparator {
 		if (!a.name.equals(b.name)) {
 			if (a.name.equals("values") || b.name.equals("values") ||
 					a.name.equals("valueOf") || b.name.equals("valueOf") ||
-					a.name.equals("toString") || b.name.equals("toString")) {
+					a.name.equals("toString") || b.name.equals("toString") ||
+					a.name.equals("<clinit>") || b.name.equals("<clinit>") ||
+					a.name.equals("<init>") || b.name.equals("<init>")) {
 				return 0f;
 			}
 		}
-
 
 		// If the return types are different, then we know that this is not a potential match,
 		// not return type per sya, just return category, not objects
@@ -56,6 +57,8 @@ public class BasicMethodComparator extends MethodComparator {
 		// as the number of dissimilarities increases
 		float MethodConfidence = 1.f;
 
+		// TODO: Simplify and make this just check for same parameters
+		// possibly allow differing parameters
 		// Build a list of all parameter types
 		Set<Type> AllParameterTypes = new TreeSet<Type>(new Comparator<Type>(){
 			@Override
@@ -84,7 +87,42 @@ public class BasicMethodComparator extends MethodComparator {
 				MethodConfidence *= (METHOD_PARAMETER_CONFIDENCE_PADDING/(B_MethodParameters.get(ParameterType)+METHOD_PARAMETER_CONFIDENCE_PADDING));
 			}*/
 		}
-		
+
+		// This is the INSN instruction count check
+		// a very important reassurance check, however occasionally it may need to be disabled when huge updates happen
+		if (MethodConfidence >= .7) {
+			double instructionDiff = Math.abs(a.instructions.size() - b.instructions.size());
+			/*
+			System.out.println();
+			System.out.println(a.name + "->" + b.name);
+			System.out.println(MethodConfidence * 100 + "%");
+			*/
+			if (instructionDiff== 0) {
+				// High score plus identical instruction count? Almost certainly identical.
+				//System.out.println("Insn count identical!");
+				return 1;
+			} else if (instructionDiff<= 10) {
+				//System.out.println("Insn count within 10!");
+				// No negative bonuses
+				if (MethodConfidence < .95) {
+					return .95f;
+				}
+			} else if (instructionDiff<= 30) {
+				//System.out.println("Insn count within 30!");
+				if (MethodConfidence < .85) {
+					return .85f;
+				}
+			} else if (instructionDiff >= 50 && instructionDiff < 100) {
+				//System.out.println("Insn count between 50 and 100");
+				// Fairly unlikely
+				return .7f;
+			} else if (instructionDiff >= 100) {
+				//System.out.println("Insn count greater than 100");
+				// 100 new opcodes? Possible but unlikely
+				return .4f;
+			}
+		}
+
 		return MethodConfidence;
 			
 	}

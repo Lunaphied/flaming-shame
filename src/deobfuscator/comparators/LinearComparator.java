@@ -31,11 +31,6 @@ public class LinearComparator implements ClassComparator {
 			total += metric.similarity(original, transformed);
 		}
 
-
-		Main.logger.info(original.name + "->" + transformed.name);
-		Main.logger.info("" + total / totalWeight);
-		Main.logger.info("");
-
 		return total / totalWeight;
 	}
 

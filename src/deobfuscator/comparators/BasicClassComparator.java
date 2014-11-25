@@ -10,6 +10,7 @@ import deobfuscator.util.Log;
 import deobfuscator.util.LogLevel;
 import deobfuscator.util.OutputLogger;
 import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.FieldNode;
 import org.objectweb.asm.tree.MethodNode;
 
 import deobfuscator.ClassComparator;
@@ -18,6 +19,15 @@ public class BasicClassComparator implements ClassComparator {
 
 	@Override
 	public float similarity(ClassNode original, ClassNode transformed) {
+		// TEMP REJECTION
+		// a is a good example of something that conflicts for no apparant reasons
+		// a->a is correct 1.7.10->1.8->1.8.1pre5->1.8.1 mapping
+		// However other mappings like awf get really high scores, in fact awf is 50% on method matching vs 31%
+		// and the methods are not that similar. Probably a sign that magic numbers need more tweaking
+		//if (!original.name.equals("a")) {
+		//	return 0;
+		//}
+
 		//
 		// Early rejection step - NOT FOR US!
 		//
@@ -75,7 +85,10 @@ public class BasicClassComparator implements ClassComparator {
 			}
 			String[] exceptions_s = new String[currentExceptions.size()];
 			currentExceptions.toArray(exceptions_s);
-			unassignedMethods.add(new MethodNode(currentNode.access,currentNode.name,currentNode.desc,currentNode.signature,exceptions_s));
+			MethodNode cloneMethod = new MethodNode(currentNode.access,currentNode.name,currentNode.desc,currentNode.signature,exceptions_s);
+			// GOTTA COPY INSTRUCTION LISTS!
+			cloneMethod.instructions = currentNode.instructions;
+			unassignedMethods.add(cloneMethod);
 		}
 
 		// Allocate a BasicMethodComparator
@@ -153,17 +166,54 @@ public class BasicClassComparator implements ClassComparator {
 			System.out.println("Method (after size): " + result * 100 + "%");
 		}
 		*/
-
 		double originalFieldCount = original.fields.size();
 		double transformedFieldCount = transformed.fields.size();
 
+		double totalFields = original.fields.size() + transformed.fields.size();
+		int sharedFields = 0;
+		int identicalNames = 0;
+		for (FieldNode obj : (List<FieldNode>)original.fields) {
+			for (FieldNode obj2 : (List<FieldNode>)transformed.fields) {
+				if (org.objectweb.asm.Type.getType(obj.desc).getSort() == org.objectweb.asm.Type.getType(obj2.desc).getSort()) {
+					// 10 is an object, object fields are quite commonly the same because different objects match
+					if (org.objectweb.asm.Type.getType(obj.desc).getSort() != 10) {
+						sharedFields += 2;
+					}
+					// However identically named object fields are usually the same
+					// For Strings check that the types are identical
+					if (obj.name.equals(obj2.name)) {
+						if (obj.desc.equals("java/lang/String") || obj2.desc.equals("java/lang/String")) {
+							if (obj.desc.equals(obj2.desc)) {
+								identicalNames += 2;
+							}
+						} else {
+							identicalNames += 2;
+						}
+					}
+				}
+			}
+		}
+
+		// Identical names are twice as imporant
+		// 1:2
+		double weightedFieldAverage = (sharedFields + identicalNames*2) / totalFields;
+		//System.out.println(original.name + "->" + transformed.name + ": " + weightedFieldAverage*100 +"%");
+		//System.out.println(result * 100 + "%");
+
+		result = (float)((result + weightedFieldAverage) / 3);
+		//System.out.println("result: " + result * 100 + "%");
+		//System.out.println();
+
+		// Lets disable this check given the more precise check
 		// If identical field count, 10% more
 		// If significantly different 25% less
+		/*
 		if (originalFieldCount == transformedFieldCount) {
 			result *= 1.10;
 		} else if (Math.abs(originalFieldCount - transformedFieldCount) > 15) {
 			result -= result * .50;
 		}
+		*/
 
 		/*
 		if (result > .01) {
@@ -178,6 +228,7 @@ public class BasicClassComparator implements ClassComparator {
 		for (Object obj : original.interfaces) {
 			for (Object obj2 : transformed.interfaces) {
 				if (obj.getClass().getName().equals(obj2.getClass().getName())) {
+					System.out.println(obj.getClass().getName());
 					sharedInterfaces += 2; // 2 because we will have duplicates
 				}
 			}
@@ -208,19 +259,25 @@ public class BasicClassComparator implements ClassComparator {
 			}
 		}
 
-		if (transformed.name.equals("net/minecraft/command/ICommand")) {
+		//if (transformed.name.equals("net/minecraft/command/ICommand")) {
 			//System.out.println(original.name + ": " + result);
-		}
+		//}
 
-		if (result >= 1.1) {
-			log(new OutputLogger(),LogLevel.INFO, result, MethodMappings, original, transformed);
+		if (result >= 0.1) {
+		//	if (result >= 1.2) {
+				// This will miss a lot of good matches.
+			//	log(new OutputLogger(), LogLevel.INFO, result, MethodMappings, original, transformed);
+		//	}
 			log(Main.logger, LogLevel.INFO, result, MethodMappings, original, transformed);
 		} else {
+			// Lets save ourselves time
 			// We should always be logging, but use debug level here so it can be ignored.
 			// However 0 is not ever helpful
+			/*
 			if (result != 0){
 				log(Main.logger,LogLevel.DEBUG, result, MethodMappings, original, transformed);
 			}
+			*/
 
 		}
 

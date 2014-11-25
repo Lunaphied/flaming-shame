@@ -25,7 +25,7 @@ public class Main {
 	}
 
 	public static void main(String[] args) {
-		logger = new Logger("logs/debug.txt");
+		logger = new Logger("logs/" + args[2]);
 		// ------------------------------------------------------------------------------------------------
 		// Show usage and exit if too few command line parameters are given
 		// ------------------------------------------------------------------------------------------------
@@ -37,6 +37,7 @@ public class Main {
 		String annotatedJarFile = args[0];
 
 		String obfuscatedJarFile = args[1];
+/*
 
 		ClassMapping groundTruth;
 		try {
@@ -51,6 +52,7 @@ public class Main {
 		if (args.length >= 3) {
 			libraryClasses = args[2].split(" ");
 		}
+*/
 
 		/*
 		LinearComparator metric = new LinearComparator();
@@ -69,10 +71,10 @@ public class Main {
 			e.printStackTrace();
 			return;
 		}
-		float matchPercentage = groundTruth.getMatchPercent(deobfuscation);
+		//float matchPercentage = groundTruth.getMatchPercent(deobfuscation);
 
-		logger.info("Match percentage: " + matchPercentage);
-		System.out.println("Match percentage: " + matchPercentage);
+		//logger.info("Match percentage: " + matchPercentage);
+		//System.out.println("Match percentage: " + matchPercentage);
 		logger.close();
 	}
 }
