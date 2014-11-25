@@ -24,9 +24,22 @@ public class BasicClassComparator implements ClassComparator {
 		// a->a is correct 1.7.10->1.8->1.8.1pre5->1.8.1 mapping
 		// However other mappings like awf get really high scores, in fact awf is 50% on method matching vs 31%
 		// and the methods are not that similar. Probably a sign that magic numbers need more tweaking
+
 		//if (!original.name.equals("a")) {
 		//	return 0;
 		//}
+
+		// SOLVED -> Field count was being used giving a 0% mapping for interfaces
+		// aa is another example of something that refuses to be mapped
+		// the rating on the actual mapping is less than 10%
+		// and lots of other things get close
+		// aa->ICommand for 1.7.10->MCP
+		//
+		/*
+		if (!original.name.equals("aa")) {
+			return 0f;
+		}
+		*/
 
 		//
 		// Early rejection step - NOT FOR US!
@@ -196,14 +209,16 @@ public class BasicClassComparator implements ClassComparator {
 
 		// Identical names are twice as imporant
 		// 1:2
-		double weightedFieldAverage = (sharedFields + identicalNames*2) / totalFields;
-		//System.out.println(original.name + "->" + transformed.name + ": " + weightedFieldAverage*100 +"%");
-		//System.out.println(result * 100 + "%");
+		// Heh if its an interface it has no fields...
+		if (totalFields != 0) {
+			double weightedFieldAverage = (sharedFields + identicalNames * 2) / totalFields;
+			//System.out.println(original.name + "->" + transformed.name + ": " + weightedFieldAverage*100 +"%");
+			//System.out.println(result * 100 + "%");
 
-		result = (float)((result + weightedFieldAverage) / 3);
-		//System.out.println("result: " + result * 100 + "%");
-		//System.out.println();
-
+			result = (float) ((result + weightedFieldAverage) / 3);
+			//System.out.println("result: " + result * 100 + "%");
+			//System.out.println();
+		}
 		// Lets disable this check given the more precise check
 		// If identical field count, 10% more
 		// If significantly different 25% less
@@ -222,13 +237,13 @@ public class BasicClassComparator implements ClassComparator {
 		}
 		*/
 
-		// 10% bonus for some interface magic
 		double totalInterfaces = original.interfaces.size() + transformed.interfaces.size();
 		int sharedInterfaces = 0;
-		for (Object obj : original.interfaces) {
-			for (Object obj2 : transformed.interfaces) {
-				if (obj.getClass().getName().equals(obj2.getClass().getName())) {
-					System.out.println(obj.getClass().getName());
+		for (String intf : (List<String>) original.interfaces) {
+			for (String intf2 : (List<String>) transformed.interfaces) {
+				if (intf.equals(intf2)) {
+					//System.out.println(original.name + "->" + transformed.name);
+					//System.out.println("*" + intf + "->" + intf2);
 					sharedInterfaces += 2; // 2 because we will have duplicates
 				}
 			}
@@ -247,13 +262,13 @@ public class BasicClassComparator implements ClassComparator {
 		// Percentage seems to be the field
 
 		if (totalInterfaces != 0) {
-			// 10% for single
-			// 20% for two or more
+			// 20% for single
+			// 40% for two or more
 			if (sharedInterfaces/totalInterfaces != 0) {
 				if (sharedInterfaces == 1) {
-					result *= 1.10;
-				} else if (sharedInterfaces >= 2) {
 					result *= 1.20;
+				} else if (sharedInterfaces >= 2) {
+					result *= 1.40;
 				}
 
 			}

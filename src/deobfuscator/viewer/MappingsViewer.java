@@ -29,7 +29,8 @@ public class MappingsViewer {
 
             List<Mapping> unsortedMappings = new ArrayList<Mapping>();
             while ((line = reader.readLine()) != null) {
-                if (line.length() >= 1 && line.charAt(0) == '2' && linenum < 200) {
+                // No linenum cap for now
+                if (line.length() >= 1 && line.charAt(0) == '2' && (true || linenum < 200)) {
                     //  System.out.println("[Info] " + line.substring(1));
                     String[] mappingParts = line.substring(1).split(",");
                     if (mappingParts[0].equals(className)) {
