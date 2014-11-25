@@ -33,7 +33,7 @@ pip-log.txt
 .mtj.tmp/
 
 # Package Files #
-*.jar
+#*.jar
 *.war
 *.ear
 
@@ -41,7 +41,6 @@ pip-log.txt
 hs_err_pid*
 out/
 run/
-lib/
 benchmark/
 *.iml
 .idea/
