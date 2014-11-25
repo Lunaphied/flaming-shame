@@ -1,8 +1,8 @@
 Java Deobfuscator
 ==============
 
-This is a go program for analyzing and comparing graphs of
-structures of java programs, such as call graphs and 
-class hierarchies to provide automatic deobfuscation
-of JVM binaries under the assumption that they are 
-statically linked to a known library.
+This is a program for analyzing and comparing graphs of
+structures of java programs to provide automatic deobfuscation.
+
+This program will not give exact mappings, rather a best guess of mappings.
+This is a limitation of the nature of compiled and obfuscated bytecode.
